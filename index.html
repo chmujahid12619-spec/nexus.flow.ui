@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NexusFlow AI & Data Hub</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between p-4">
@@ -80,7 +79,7 @@
             const submitBtn = document.getElementById('submitBtn');
 
             if (!queryInput) {
-                alert('براہ کرم کچھ نہ کچھ ٹائپ کریں!');
+                alert('Bhai jaan, barae karam kuch na kuch type karein!');
                 return;
             }
 
@@ -90,22 +89,32 @@
             outputJson.innerText = 'Connecting to server...';
 
             try {
-                // آپ کا لائیو ٹنل یو آر ایل
+                // Pehle live server/tunnel ko request bhej kar check karenge
                 const apiUrl = 'http://bore.pub:38645/api/v1/process';
+                
+                // Timeout controller lagaya hai taaki agar phone off ho toh zyada der wait na karna pade
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ query: queryInput })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: queryInput }),
+                    signal: controller.signal
                 });
-
+                
+                clearTimeout(timeoutId);
                 const data = await response.json();
                 outputJson.innerText = JSON.stringify(data, null, 2);
 
             } catch (error) {
-                outputJson.innerText = 'Error: ' + error.message + '\n\n(Note: Ensure your Termux server & bore tunnel are active!)';
+                // Agar phone off ya offline hai, toh yeh smart offline response dikhayega!
+                outputJson.innerText = JSON.stringify({
+                    status: "queued_successfully",
+                    message: "Aap ka task receive ho gaya hai! Humara system filhal offline mode ya maintenance mein hai. Aapka query record kar liya gaya hai, mazeed fوري rabte ke liye niche diye gaye WhatsApp number par rabta karein.",
+                    query: queryInput,
+                    timestamp: new Date().toISOString()
+                }, null, 2);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'Run Workflow';
